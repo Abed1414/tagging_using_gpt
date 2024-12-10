@@ -78,44 +78,52 @@
     <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.3/dist/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
-
     <script>
-        $(document).ready(function() {
-            const $sendButton = $('#sendButton');
-            const $chatBox = $('.chat-box');
-            const $imageInput = $('#imageInput');
-            const $imageForm = $('#imageForm');
+$(document).ready(function() {
+    const $sendButton = $('#sendButton');
+    const $chatBox = $('.chat-box');
+    const $imageInput = $('#imageInput');
+    const $imageForm = $('#imageForm');
 
-            function sendImage() {
-                const formData = new FormData($imageForm[0]);
+    function sendImage() {
+        const formData = new FormData($imageForm[0]);
 
-                if (!$imageInput.val()) return;
+        if (!$imageInput.val()) {
+            alert("Please upload an image.");
+            return;
+        }
 
-                $chatBox.append(`<p class="chat-message"><strong>User:</strong> Image uploaded.</p>`);
+        $chatBox.append(`<p class="chat-message"><strong>User:</strong> Image uploaded.</p>`);
 
-                $.ajax({
-                    url: '{{ route('get_chat') }}',
-                    method: 'POST',
-                    data: formData,
-                    headers: {
-                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
-                    },
-                    processData: false,
-                    contentType: false,
-                    success: function(data) {
-                        if (data && data.content) {
-                            $chatBox.append(`<p class="chat-message"><strong>ChatGPT:</strong> ${data.content}</p>`);
-                            $chatBox.scrollTop($chatBox[0].scrollHeight);
-                        }
-                    },
-                    error: function(error) {
-                        console.error('Error:', error);
-                    }
-                });
+        $.ajax({
+            url: '/ask',
+            method: 'POST',
+            data: formData,
+            headers: {
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content'),
+            },
+            processData: false,
+            contentType: false,
+            success: function(data) {
+                if (data && data.content) {
+                    $chatBox.append(`<p class="chat-message"><strong>ChatGPT:</strong> ${data.content}</p>`);
+                    $chatBox.scrollTop($chatBox[0].scrollHeight);
+                } else if (data && data.error) {
+                    $chatBox.append(`<p class="chat-message"><strong>Error:</strong> ${data.error}</p>`);
+                }
+            },
+            error: function(xhr, status, error) {
+                console.error('Error:', error);
+                console.error('Response:', xhr.responseJSON);
+                const errorMessage = xhr.responseJSON && xhr.responseJSON.details ? xhr.responseJSON.details : 'Unable to process the image.';
+                $chatBox.append(`<p class="chat-message"><strong>Error:</strong> ${errorMessage}</p>`);
             }
-
-            $sendButton.on('click', sendImage);
         });
+    }
+
+    $sendButton.on('click', sendImage);
+});
+
     </script>
 </body>
 </html>
